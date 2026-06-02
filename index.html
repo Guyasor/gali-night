@@ -130,13 +130,19 @@
   .photo-action-btn { background:white;border:none;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;color:#333; }
   .photo-action-btn:hover { background:#f5f5f5; }
   .photos-empty { grid-column:1/-1;text-align:center;padding:60px 20px;color:#ccc;font-size:16px; }
+  /* caption modal */
+  .caption-modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:flex-end;justify-content:center; }
+  .caption-sheet { background:white;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;box-sizing:border-box; }
+  .caption-preview { width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:16px;display:block; }
+  .caption-sheet h3 { font-size:18px;font-weight:800;color:#c84b7a;margin-bottom:14px; }
   /* lightbox */
-  .lightbox { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:3000;align-items:center;justify-content:center; }
-  .lightbox.open { display:flex; }
-  .lightbox img { max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain; }
-  .lightbox-close { position:absolute;top:16px;right:16px;background:white;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer; }
-  .lightbox-actions { position:absolute;bottom:20px;display:flex;gap:12px; }
-  .lb-btn { background:white;border:none;border-radius:20px;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif; }
+  .lightbox { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:3000;flex-direction:column;align-items:center;justify-content:center; }
+  .lightbox img { max-width:95vw;max-height:72vh;border-radius:12px;object-fit:contain; }
+  .lightbox-close { position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;color:white; }
+  .lightbox-caption { color:white;font-size:15px;margin-top:10px;text-align:center;max-width:80vw; }
+  .lightbox-actions { display:flex;gap:12px;margin-top:14px; }
+  .lb-btn { background:white;border:none;border-radius:20px;padding:9px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif; }
+  .lb-btn.danger { background:#ffebee;color:#c62828; }
   /* ── CHAT ── */
   .msg-bubble { max-width:75%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.4;word-break:break-word; }
   .msg-mine { background:#c84b7a;color:white;align-self:flex-end;border-bottom-right-radius:4px; }
@@ -184,13 +190,19 @@
   .photo-action-btn { background:white;border:none;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;color:#333; }
   .photo-action-btn:hover { background:#f5f5f5; }
   .photos-empty { grid-column:1/-1;text-align:center;padding:60px 20px;color:#ccc;font-size:16px; }
+  /* caption modal */
+  .caption-modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:flex-end;justify-content:center; }
+  .caption-sheet { background:white;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;box-sizing:border-box; }
+  .caption-preview { width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:16px;display:block; }
+  .caption-sheet h3 { font-size:18px;font-weight:800;color:#c84b7a;margin-bottom:14px; }
   /* lightbox */
-  .lightbox { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:3000;align-items:center;justify-content:center; }
-  .lightbox.open { display:flex; }
-  .lightbox img { max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain; }
-  .lightbox-close { position:absolute;top:16px;right:16px;background:white;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer; }
-  .lightbox-actions { position:absolute;bottom:20px;display:flex;gap:12px; }
-  .lb-btn { background:white;border:none;border-radius:20px;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif; }
+  .lightbox { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:3000;flex-direction:column;align-items:center;justify-content:center; }
+  .lightbox img { max-width:95vw;max-height:72vh;border-radius:12px;object-fit:contain; }
+  .lightbox-close { position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;color:white; }
+  .lightbox-caption { color:white;font-size:15px;margin-top:10px;text-align:center;max-width:80vw; }
+  .lightbox-actions { display:flex;gap:12px;margin-top:14px; }
+  .lb-btn { background:white;border:none;border-radius:20px;padding:9px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif; }
+  .lb-btn.danger { background:#ffebee;color:#c62828; }
   /* ── CHAT ── */
   .msg-bubble { max-width:75%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.4;word-break:break-word; }
   .msg-mine { background:#c84b7a;color:white;align-self:flex-end;border-bottom-right-radius:4px; }
@@ -362,6 +374,16 @@
       📸 הוסף תמונה
     </button>
     <input type="file" id="photoUpload" accept="image/*" multiple style="display:none" onchange="openCaptionModal(this.files)">
+    <div id="uploadStatusBar" style="display:none;margin-top:14px;background:white;border-radius:14px;padding:14px 18px;box-shadow:0 3px 12px rgba(200,75,122,0.12);">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span id="uploadStatusText" style="font-size:14px;font-weight:600;color:#c84b7a">מעלה...</span>
+        <span id="uploadPct" style="font-size:14px;font-weight:700;color:#c84b7a">0%</span>
+      </div>
+      <div style="background:#fce4ec;border-radius:6px;height:8px;overflow:hidden">
+        <div id="uploadBar" style="height:100%;background:#c84b7a;border-radius:6px;width:0%;transition:width .2s"></div>
+      </div>
+    </div>
+    <div id="uploadError" style="display:none;margin-top:12px;background:#ffebee;border-radius:12px;padding:12px 16px;color:#c62828;font-size:14px;font-weight:600"></div>
   </div>
   <div id="photosGrid" class="photos-grid"></div>
   <div class="photos-empty" id="photosEmpty" style="display:none">עדיין אין תמונות — היה הראשון להעלות! 📸</div>
@@ -913,45 +935,61 @@ function confirmUpload() {
 
 function uploadFiles(files, caption) {
   if (!files.length) return;
-  const zone = document.getElementById('uploadZone');
-  const zoneText = document.getElementById('uploadZoneText');
-  const prog = document.getElementById('uploadProgress');
-  const bar = document.getElementById('uploadProgressBar');
-  zone.classList.add('uploading');
-  prog.style.display = 'block';
-  let done = 0;
-  files.forEach(file => {
-    const storName = Date.now() + '_' + Math.random().toString(36).slice(2);
+  const btn = document.querySelector('.add-photo-btn');
+  const statusBar = document.getElementById('uploadStatusBar');
+  const statusText = document.getElementById('uploadStatusText');
+  const pctEl = document.getElementById('uploadPct');
+  const bar = document.getElementById('uploadBar');
+  const errEl = document.getElementById('uploadError');
+  errEl.style.display = 'none';
+  statusBar.style.display = 'block';
+  btn.disabled = true; btn.style.opacity = '0.6';
+  let done = 0, totalBytes = 0, loadedBytes = 0;
+  const progMap = {};
+  files.forEach((file, i) => { progMap[i] = 0; totalBytes += file.size; });
+
+  files.forEach((file, i) => {
+    const storName = Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2);
     const ref = stor.ref('photos/' + storName);
     const task = ref.put(file);
     task.on('state_changed', snap => {
-      const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+      progMap[i] = snap.bytesTransferred;
+      const total = Object.values(progMap).reduce((a,b)=>a+b,0);
+      const pct = totalBytes > 0 ? Math.round(total / totalBytes * 100) : 0;
       bar.style.width = pct + '%';
-      zoneText.textContent = '⏳ מעלה... ' + pct + '%';
+      pctEl.textContent = pct + '%';
+      statusText.textContent = files.length > 1 ? 'מעלה ' + (done+1) + ' מתוך ' + files.length + '...': 'מעלה...';
     });
-    task.then(snap => snap.ref.getDownloadURL()).then(url => {
-      db.collection('photos').add({ url, caption, uploader: chatName || 'אנונימי', ts: firebase.firestore.FieldValue.serverTimestamp() });
-      done++;
-      if (done === files.length) {
-        zone.classList.remove('uploading');
-        prog.style.display = 'none';
-        bar.style.width = '0%';
-        zoneText.textContent = 'לחץ או גרור תמונות להעלאה';
-        document.getElementById('photoUpload').value = '';
-      }
-    }).catch(e => {
-      console.error('Upload error:', e.code, e.message);
-      done++;
-      zone.classList.remove('uploading');
-      prog.style.display = 'none';
-      zoneText.textContent = 'לחץ או גרור תמונות להעלאה';
-      // Show user-friendly error
-      const msg = e.code === 'storage/unauthorized' ? 'שגיאה: אין הרשאה — בדוק חוקי Firebase Storage'
-                : e.code === 'storage/canceled' ? 'ההעלאה בוטלה'
-                : e.code === 'storage/unknown' ? 'שגיאת רשת — נסה שוב'
-                : 'שגיאה: ' + (e.message || e.code);
-      alert(msg);
-    });
+    task.then(snap => snap.ref.getDownloadURL())
+      .then(url => {
+        return db.collection('photos').add({
+          url, caption: caption || '',
+          uploader: chatName || 'אנונימי',
+          ts: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      })
+      .then(() => {
+        done++;
+        if (done === files.length) {
+          statusText.textContent = '✅ הועלה בהצלחה!';
+          bar.style.width = '100%';
+          pctEl.textContent = '100%';
+          btn.disabled = false; btn.style.opacity = '1';
+          setTimeout(() => { statusBar.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+          document.getElementById('photoUpload').value = '';
+        }
+      })
+      .catch(e => {
+        console.error('Upload error:', e);
+        btn.disabled = false; btn.style.opacity = '1';
+        statusBar.style.display = 'none';
+        const msg = e.code === 'storage/unauthorized' ? 'אין הרשאה — בדוק חוקי Firebase Storage'
+                  : e.code === 'storage/quota-exceeded' ? 'המגבלה הגיעה לנפח מלא'
+                  : e.message || 'שגיאה לא ידועה';
+        errEl.textContent = '❌ שגיאה בהעלאה: ' + msg;
+        errEl.style.display = 'block';
+        setTimeout(() => { errEl.style.display = 'none'; }, 8000);
+      });
   });
 }
 
@@ -982,9 +1020,9 @@ function openLightbox(docId, url, caption) {
   lightboxUrl = url; lightboxDocId = docId;
   document.getElementById('lbImg').src = url;
   document.getElementById('lbCaption').textContent = caption || '';
-  document.getElementById('lightbox').classList.add('open');
+  document.getElementById('lightbox').style.display = 'flex';
 }
-function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
 
 function deleteLightboxPhoto() {
   if (lightboxDocId) { deletePhoto(lightboxDocId, lightboxUrl); closeLightbox(); }
