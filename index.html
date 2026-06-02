@@ -173,7 +173,7 @@
   .transport-drop-zone.drag-over-orange { background: rgba(230,126,34,0.08); outline: 2px dashed #e67e22; }
 
   /* ── TRANSPORT ADMIN ── */
-  .transport-pill-wrap { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+  .transport-pill-wrap { position: relative; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
   .transport-pill-wrap .pill-edit-btn { display: none; background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px 4px; opacity: 0.7; }
   .transport-pill-wrap .pill-edit-btn:hover { opacity: 1; }
   body.admin-mode .transport-pill-wrap .pill-edit-btn { display: inline; }
@@ -663,14 +663,23 @@ function renderTransport() {
     const cfg = T_CONFIG[type];
     const members = groups[type];
     const titleStyle = cfg.style ? ` style="${cfg.style}"` : '';
+    const phones = loadPhones();
     const pills = members.map(p => {
       const ps = cfg.pillStyle ? ` style="${cfg.pillStyle}"` : '';
+      const safeId = 'tph_' + btoa(unescape(encodeURIComponent(p.name))).replace(/[^a-zA-Z0-9]/g,'');
+      const phone = phones[p.name] || '';
+      const chipHtml = `<div class="phone-chip" id="${safeId}">
+          ${phone
+            ? `📞 <strong>${phone}</strong><span class="copy-hint" onclick="event.stopPropagation();copyPhone('${phone}','${safeId}')">לחץ להעתיק</span>`
+            : `<span style="color:#aaa;font-size:12px">אין מספר טלפון</span>`}
+        </div>`;
       return `<span class="transport-pill-wrap" draggable="true" data-idx="${p.i}"
         ondragstart="onPillDragStart(event,${p.i})"
         ondragend="onPillDragEnd(event)">
-        <span class="${cfg.pillClass}"${ps}>${p.name}</span>
+        <span class="${cfg.pillClass}"${ps} style="cursor:pointer" onclick="togglePhone('${safeId}','${p.name}')">${p.name}</span>
         <button class="pill-edit-btn" onclick="openEditTransport(${p.i})" title="ערוך">✏️</button>
         <button class="pill-edit-btn" onclick="deleteTransport(${p.i})" title="מחק" style="color:#e53935">✕</button>
+        ${chipHtml}
       </span>`;
     }).join('');
     html += `<div class="transport-group">
