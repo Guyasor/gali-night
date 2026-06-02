@@ -1231,6 +1231,20 @@ window.exitAdmin = function() {
 // Apply saved edits on load
 applyEdits();
 </script>
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-title">🔐 כניסת מנהל</div>
+    <label>סיסמה</label>
+    <input type="password" id="adminPass" placeholder="הזן סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="modal-note" id="loginError" style="color:#e53935;display:none">סיסמה שגויה</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('loginModal')">ביטול</button>
+      <button class="btn-primary" onclick="doLogin()">כניסה</button>
+    </div>
+  </div>
+</div>
+
 <!-- CAPTION MODAL -->
 <div class="caption-modal" id="captionModal">
   <div class="caption-sheet">
