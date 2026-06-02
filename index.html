@@ -485,29 +485,38 @@ function saveRooms(rooms) {
 function renderRooms() {
   const rooms = loadRooms();
   const grid = document.getElementById('roomsGrid');
-  const pairCount = rooms.filter(r => r.type === 'pair').length;
+
+  // Find duplicate names across all rooms
+  const nameCount = {};
+  rooms.forEach(room => room.people.forEach(p => { nameCount[p] = (nameCount[p] || 0) + 1; }));
+  const duplicates = new Set(Object.keys(nameCount).filter(n => nameCount[n] > 1));
+
+  const phones = loadPhones();
   let pairNum = 0, singleNum = 0;
   grid.innerHTML = rooms.map((room, i) => {
     const isSingle = room.type === 'single';
-    if (isSingle) singleNum++;
-    else pairNum++;
+    if (isSingle) singleNum++; else pairNum++;
     const label = isSingle ? `חדר יחיד ${singleNum}` : `זוג חדר ${pairNum}`;
-    const dotColor = isSingle ? '#4db6a3' : '#f9a8c9';
-    const phones = loadPhones();
+    const hasDup = room.people.some(p => duplicates.has(p));
     const persons = room.people.map(p => {
+      const isDup = duplicates.has(p);
       const safeId = 'ph_' + btoa(unescape(encodeURIComponent(p))).replace(/[^a-zA-Z0-9]/g,'');
       const phone = phones[p] || '';
-      return `<div class="room-person" onclick="togglePhone('${safeId}','${p}')">👤 ${p}</div>
+      const dupBadge = isDup ? `<span title="השם מופיע ביותר מחדר אחד!" style="color:#e53935;font-weight:900;margin-right:4px;cursor:help">⚠️</span>` : '';
+      return `<div class="room-person" onclick="togglePhone('${safeId}','${p}')">${dupBadge}👤 ${p}</div>
         <div class="phone-chip" id="${safeId}">
           ${phone
             ? `📞 <strong>${phone}</strong><span class="copy-hint" onclick="event.stopPropagation();copyPhone('${phone}','${safeId}')">לחץ להעתיק</span>`
             : `<span style="color:#aaa;font-size:12px">אין מספר טלפון</span>`}
         </div>`;
     }).join('');
-    return `<div class="room-card ${isSingle ? 'single' : ''}">
+    const dupCardStyle = hasDup ? 'border-top-color:#e53935;' : '';
+    const dupCardNote = hasDup ? `<div style="font-size:11px;color:#e53935;font-weight:700;margin-top:6px;">⚠️ שם מופיע ביותר מחדר אחד</div>` : '';
+    return `<div class="room-card ${isSingle ? 'single' : ''}" style="${dupCardStyle}">
       <button class="admin-edit-btn" onclick="openEdit(${i})">✏️ עריכה</button><button class="admin-delete-btn" onclick="deleteRoom(${i})">🗑 מחק</button>
       <div class="room-number"><span class="dot"></span>${label}</div>
       ${persons}
+      ${dupCardNote}
     </div>`;
   }).join('');
 }
