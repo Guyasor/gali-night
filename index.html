@@ -357,17 +357,19 @@
 <!-- PHOTOS -->
 <div class="section" id="photos">
   <div class="section-title">תמונות מהאירוע</div>
-  <div style="text-align:center;margin-bottom:24px">
-    <label for="photoUpload" class="upload-btn" id="uploadLabel">
-      <span id="uploadBtnText">📸 העלה תמונה</span>
-    </label>
-    <input type="file" id="photoUpload" accept="image/*" multiple style="display:none" onchange="uploadPhotos(this)">
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('photoUpload').click()"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="event.preventDefault();this.classList.remove('drag-over');handleDrop(event)">
+    <div class="upload-zone-icon">📸</div>
+    <div class="upload-zone-text" id="uploadZoneText">לחץ או גרור תמונות להעלאה</div>
+    <div class="upload-zone-sub">תמיכה ב-JPG, PNG, HEIC</div>
+    <div class="upload-progress" id="uploadProgress"><div class="upload-progress-bar" id="uploadProgressBar" style="width:0%"></div></div>
   </div>
-  <div id="photosGrid" class="photos-grid">
-    <div class="photos-empty" id="photosEmpty">עדיין אין תמונות — היה הראשון להעלות! 📸</div>
-  </div>
+  <input type="file" id="photoUpload" accept="image/*" multiple style="display:none" onchange="openCaptionModal(this.files)">
+  <div id="photosGrid" class="photos-grid"></div>
+  <div class="photos-empty" id="photosEmpty" style="display:none">עדיין אין תמונות — היה הראשון להעלות! 📸</div>
 </div>
-
 <!-- CHAT -->
 <div class="section" id="chat">
   <div class="section-title">צ'אט האירוע</div>
