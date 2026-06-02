@@ -108,7 +108,25 @@
   .add-room-btn { display: none; width: 100%; margin-top: 16px; padding: 14px; border: 2px dashed #f9a8c9; border-radius: 18px; background: transparent; color: #c84b7a; font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .2s; }
   .add-room-btn:hover { background: #fce4ec; border-style: solid; }
   body.admin-mode .add-room-btn { display: block; }
+  /* ── SHEET SYNC ── */
+  .sync-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; background: #e0f2ef; border-radius: 12px; margin: 0 16px 20px; font-size: 13px; color: #2a7a6a; font-weight: 600; max-width: 860px; margin: 0 auto 20px; }
+  .sync-bar.error { background: #fce4ec; color: #c84b7a; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #4db6a3; flex-shrink: 0; }
+  .sync-dot.error { background: #c84b7a; }
+  .sync-dot.loading { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .sync-btn { background: #2a7a6a; color: white; border: none; border-radius: 10px; padding: 4px 12px; font-size: 12px; font-family: 'Heebo',sans-serif; font-weight: 700; cursor: pointer; }
+  .sync-btn:hover { background: #1a5a4a; }
   /* ── DRAG & DROP ── */
+  /* ── SHEET SYNC ── */
+  .sync-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; background: #e0f2ef; border-radius: 12px; margin: 0 16px 20px; font-size: 13px; color: #2a7a6a; font-weight: 600; max-width: 860px; margin: 0 auto 20px; }
+  .sync-bar.error { background: #fce4ec; color: #c84b7a; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #4db6a3; flex-shrink: 0; }
+  .sync-dot.error { background: #c84b7a; }
+  .sync-dot.loading { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .sync-btn { background: #2a7a6a; color: white; border: none; border-radius: 10px; padding: 4px 12px; font-size: 12px; font-family: 'Heebo',sans-serif; font-weight: 700; cursor: pointer; }
+  .sync-btn:hover { background: #1a5a4a; }
   /* ── DRAG & DROP ── */
   body.admin-mode .transport-pill-wrap[draggable="true"] { cursor: grab; }
   .transport-pill-wrap.dragging { opacity: 0.35; transform: scale(0.95); }
@@ -189,6 +207,10 @@
   <button class="tab-btn" onclick="showTab('transport',this)">🚌 הסעות</button>
 </div>
 
+<div class="sync-bar" id="syncBar" style="display:none">
+  <span class="sync-dot" id="syncDot"></span>
+  <span id="syncMsg"></span>
+</div>
 <!-- SCHEDULE -->
 <div class="section active" id="schedule">
   <div class="section-title">לו"ז הטיול</div>
@@ -442,8 +464,7 @@ function saveRoom() {
   };
   if (isNew) { rooms.push(roomData); } else { rooms[index] = roomData; }
   saveRooms(rooms);
-  renderRooms();
-renderTransport();
+  syncFromSheet();
   closeModal('editModal');
 }
 
@@ -459,6 +480,87 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 });
 
 
+// ── GOOGLE SHEETS SYNC ──
+const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/1hx8K_1OMbTKZU86UQHLxAIMA3JHMld0lq6rLO-X8Z4M/export?format=csv&gid=0';
+
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inQuote = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuote) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQuote = false;
+      else field += c;
+    } else {
+      if (c === '"') inQuote = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i+1] === '\n') i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += c;
+    }
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function setSyncStatus(state, msg) {
+  const bar = document.getElementById('syncBar');
+  const dot = document.getElementById('syncDot');
+  const msgEl = document.getElementById('syncMsg');
+  bar.style.display = 'flex';
+  bar.className = 'sync-bar' + (state === 'error' ? ' error' : '');
+  dot.className = 'sync-dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+  msgEl.innerHTML = msg;
+}
+
+async function syncFromSheet(manual) {
+  setSyncStatus('loading', 'מסנכרן עם Google Sheets...');
+  try {
+    const res = await fetch(SHEET_CSV + '&t=' + Date.now());
+    if (!res.ok) throw new Error(res.status);
+    const csv = await res.text();
+    const allRows = parseCSV(csv).slice(1).filter(r => r[0]?.trim());
+
+    // Build name→row map
+    const nameMap = new Map();
+    allRows.forEach(r => { const n = r[0]?.trim(); if (n) nameMap.set(n, r); });
+
+    // Parse rooms
+    const seen = new Set(), rooms = [];
+    for (const [name, row] of nameMap) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const mate = row[2]?.trim();
+      if (mate && nameMap.has(mate) && !seen.has(mate)) {
+        seen.add(mate);
+        rooms.push({ type: 'pair', people: [name, mate] });
+      } else {
+        rooms.push({ type: 'single', people: [name] });
+      }
+    }
+    saveRooms(rooms);
+
+    // Parse transport
+    const transport = [...nameMap.entries()].map(([name, row]) => {
+      const t = (row[3] || '').trim();
+      let type = 'unknown';
+      if (t.includes('הסעה')) type = 'bus';
+      else if (t.includes('עצמא')) type = 'self';
+      return { name, type };
+    });
+    saveTransportData(transport);
+
+    renderRooms();
+    renderTransport();
+
+    const now = new Date().toLocaleTimeString('he-IL');
+    setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${document.body.classList.contains('admin-mode') ? ' &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)">🔄 רענן</button>' : ''}`);
+  } catch(e) {
+    setSyncStatus('error', `שגיאת סינכרון עם Google Sheets · נטען מהגיליון המקומי <button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
+    console.warn('Sheet sync error:', e);
+  }
+}
 // ── TRANSPORT DATA ──
 const DEFAULT_TRANSPORT = [
   {name:'אורית מלמד',type:'bus'},{name:'אללה אודי',type:'bus'},{name:'ליאת פתאל',type:'bus'},
@@ -616,8 +718,7 @@ function deleteTransport(index) {
   renderTransport();
 }
 // ── INIT ──
-renderRooms();
-renderTransport();
+syncFromSheet();
 
 // ── DELETE ROOM ──
 function deleteRoom(index) {
@@ -626,8 +727,7 @@ function deleteRoom(index) {
   if (!confirm(`למחוק את החדר של ${name}?`)) return;
   rooms.splice(index, 1);
   saveRooms(rooms);
-  renderRooms();
-renderTransport();
+  syncFromSheet();
 }
 
 // ── ADD ROOM ──
@@ -695,6 +795,10 @@ window.doLogin = function() {
 };
 
 // Override exitAdmin
+function showAdminSyncBtn(show) {
+  const bar = document.getElementById('syncBar');
+  if (bar.style.display !== 'none') syncFromSheet(); // refresh sync bar to show/hide button
+}
 window.exitAdmin = function() {
   document.body.classList.remove('admin-mode');
   enableEditables(false);
