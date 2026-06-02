@@ -387,62 +387,6 @@
   </div>
 </div>
 
-<!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
-  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-  <img id="lbImg" src="" alt="">
-  <div class="lightbox-actions">
-    <button class="lb-btn" onclick="downloadPhoto(lightboxUrl,'photo.jpg')">⬇️ הורד</button>
-    <button class="lb-btn" onclick="sharePhoto(lightboxUrl)">📤 שתף</button>
-  </div>
-</div>
-<div id="phoneToast"></div>
-<footer>
-  <div>צוות אורט אורנית – סוגרים שנה 2025/2026 🌊 • מלון וורט לגון, נתניה לגון, נתניה</div>
-  <div style="margin-top:10px"><button class="admin-link" onclick="openAdminLogin()">🔐</button></div>
-</footer>
-
-<!-- SAVE BAR -->
-<div class="admin-save-bar">
-  <span>✏️ מצב עריכה — לחץ על כל טקסט כדי לערוך אותו</span>
-  <div class="admin-save-bar-btns">
-    <button class="save-bar-btn secondary" onclick="resetAllEdits()">↺ אפס שינויים</button>
-    <button class="save-bar-btn primary" onclick="saveAllEdits()">💾 שמור הכל</button>
-  </div>
-</div>
-<!-- TRANSPORT EDIT MODAL -->
-<div class="modal-overlay" id="transportModal">
-  <div class="modal">
-    <div class="modal-title" id="transportModalTitle">✏️ עריכת נסיעה</div>
-    <input type="hidden" id="editTransportIndex">
-    <label>שם מלא</label>
-    <input type="text" id="editTransportName" placeholder="שם מלא" onkeydown="if(event.key==='Enter')saveTransport()">
-    <label style="margin-top:16px">אמצעי הגעה</label>
-    <div class="room-type-selector" style="margin-top:8px">
-      <button class="type-btn active" id="tTypeBus" onclick="setTransportType('bus')">🚌 הסעה</button>
-      <button class="type-btn green" id="tTypeSelf" onclick="setTransportType('self')">🚗 עצמאי</button>
-      <button class="type-btn" id="tTypeUnknown" onclick="setTransportType('unknown')" style="border-color:#e67e22;color:#e67e22">❓ לא ידוע</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeModal('transportModal')">ביטול</button>
-      <button class="btn-primary" onclick="saveTransport()">שמור</button>
-    </div>
-  </div>
-</div>
-<!-- LOGIN MODAL -->
-<div class="modal-overlay" id="loginModal">
-  <div class="modal">
-    <div class="modal-title">🔐 כניסת מנהל</div>
-    <label>סיסמה</label>
-    <input type="password" id="adminPass" placeholder="הזן סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="modal-note" id="loginError" style="color:#e53935;display:none">סיסמה שגויה</div>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeModal('loginModal')">ביטול</button>
-      <button class="btn-primary" onclick="doLogin()">כניסה</button>
-    </div>
-  </div>
-</div>
-
 <!-- EDIT ROOM MODAL -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
@@ -1224,5 +1168,33 @@ window.exitAdmin = function() {
 // Apply saved edits on load
 applyEdits();
 </script>
+<!-- CAPTION MODAL -->
+<div class="caption-modal" id="captionModal">
+  <div class="caption-sheet">
+    <h3>📸 הוסף תיאור לתמונה</h3>
+    <img id="captionPreview" src="" class="caption-preview" alt="">
+    <label style="font-size:14px;font-weight:600;color:#666;display:block;margin-bottom:6px;margin-top:4px">תיאור (אופציונלי)</label>
+    <input type="text" id="captionInput" placeholder="מה קורה בתמונה? 🌊" style="width:100%;border:2px solid #f9a8c9;border-radius:12px;padding:10px 14px;font-size:15px;font-family:Heebo,sans-serif;outline:none;margin-bottom:16px;box-sizing:border-box">
+    <div style="display:flex;gap:10px">
+      <button onclick="closeCaptionModal()" style="flex:1;padding:12px;border:2px solid #eee;border-radius:12px;background:white;font-family:Heebo,sans-serif;font-size:15px;font-weight:700;cursor:pointer;color:#888">ביטול</button>
+      <button onclick="confirmUpload()" style="flex:2;padding:12px;background:#c84b7a;color:white;border:none;border-radius:12px;font-family:Heebo,sans-serif;font-size:15px;font-weight:700;cursor:pointer">העלה 📤</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lbImg" src="" alt="">
+  <div class="lightbox-caption" id="lbCaption"></div>
+  <div class="lightbox-actions">
+    <button class="lb-btn" onclick="downloadPhoto(lightboxUrl,'photo.jpg')">⬇️ הורד</button>
+    <button class="lb-btn" onclick="sharePhoto(lightboxUrl)">📤 שתף</button>
+    <button class="lb-btn danger" onclick="deleteLightboxPhoto()">🗑 מחק</button>
+  </div>
+</div>
+
+<div id="phoneToast"></div>
+
 </body>
 </html>
