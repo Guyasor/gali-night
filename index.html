@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -995,7 +995,19 @@ function uploadFiles(files, caption) {
         zoneText.textContent = 'לחץ או גרור תמונות להעלאה';
         document.getElementById('photoUpload').value = '';
       }
-    }).catch(e => { console.error(e); done++; zone.classList.remove('uploading'); });
+    }).catch(e => {
+      console.error('Upload error:', e.code, e.message);
+      done++;
+      zone.classList.remove('uploading');
+      prog.style.display = 'none';
+      zoneText.textContent = 'לחץ או גרור תמונות להעלאה';
+      // Show user-friendly error
+      const msg = e.code === 'storage/unauthorized' ? 'שגיאה: אין הרשאה — בדוק חוקי Firebase Storage'
+                : e.code === 'storage/canceled' ? 'ההעלאה בוטלה'
+                : e.code === 'storage/unknown' ? 'שגיאת רשת — נסה שוב'
+                : 'שגיאה: ' + (e.message || e.code);
+      alert(msg);
+    });
   });
 }
 
