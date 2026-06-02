@@ -117,6 +117,19 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
   .sync-btn { background: #2a7a6a; color: white; border: none; border-radius: 10px; padding: 4px 12px; font-size: 12px; font-family: 'Heebo',sans-serif; font-weight: 700; cursor: pointer; }
   .sync-btn:hover { background: #1a5a4a; }
+  /* ── PHONE TOOLTIP ── */
+  .room-person { cursor: pointer; border-radius: 8px; transition: background .15s; padding: 6px 4px; }
+  .room-person:hover { background: #fce4ec; }
+  .phone-chip {
+    display: none; align-items: center; gap: 8px; margin: 2px 0 6px 0;
+    background: #f3e5f5; border-radius: 8px; padding: 6px 12px;
+    font-size: 13px; font-weight: 600; color: #6a1b9a; direction: ltr;
+    cursor: pointer; transition: background .15s;
+  }
+  .phone-chip:hover { background: #e1bee7; }
+  .phone-chip.visible { display: flex; }
+  .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
+  .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
   /* ── DRAG & DROP ── */
   /* ── SHEET SYNC ── */
   .sync-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; background: #e0f2ef; border-radius: 12px; margin: 0 16px 20px; font-size: 13px; color: #2a7a6a; font-weight: 600; max-width: 860px; margin: 0 auto 20px; }
@@ -127,6 +140,19 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
   .sync-btn { background: #2a7a6a; color: white; border: none; border-radius: 10px; padding: 4px 12px; font-size: 12px; font-family: 'Heebo',sans-serif; font-weight: 700; cursor: pointer; }
   .sync-btn:hover { background: #1a5a4a; }
+  /* ── PHONE TOOLTIP ── */
+  .room-person { cursor: pointer; border-radius: 8px; transition: background .15s; padding: 6px 4px; }
+  .room-person:hover { background: #fce4ec; }
+  .phone-chip {
+    display: none; align-items: center; gap: 8px; margin: 2px 0 6px 0;
+    background: #f3e5f5; border-radius: 8px; padding: 6px 12px;
+    font-size: 13px; font-weight: 600; color: #6a1b9a; direction: ltr;
+    cursor: pointer; transition: background .15s;
+  }
+  .phone-chip:hover { background: #e1bee7; }
+  .phone-chip.visible { display: flex; }
+  .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
+  .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
   /* ── DRAG & DROP ── */
   body.admin-mode .transport-pill-wrap[draggable="true"] { cursor: grab; }
   .transport-pill-wrap.dragging { opacity: 0.35; transform: scale(0.95); }
@@ -553,6 +579,18 @@ async function syncFromSheet(manual) {
     });
     saveTransportData(transport);
 
+    // Save phone numbers map
+    const phones = {};
+    allRows.forEach(row => {
+      const name = row[0]?.trim();
+      let phone = (row[4] || '').toString().trim().replace(/\D/g,'');
+      if (name && phone) {
+        if (!phone.startsWith('0')) phone = '0' + phone;
+        phones[name] = phone;
+      }
+    });
+    localStorage.setItem(PHONES_KEY, JSON.stringify(phones));
+
     // Update participant count dynamically
     const countEl = document.getElementById('participantCount');
     if (countEl) countEl.textContent = nameMap.size;
@@ -722,6 +760,30 @@ function deleteTransport(index) {
   people.splice(index, 1);
   saveTransportData(people);
   renderTransport();
+}
+// ── PHONE NUMBERS ──
+const PHONES_KEY = 'galiPhones';
+function loadPhones() { try { return JSON.parse(localStorage.getItem(PHONES_KEY) || '{}'); } catch(e) { return {}; } }
+
+function showPhone(name) {
+  // Close any open chips first
+  document.querySelectorAll('.phone-chip.visible').forEach(c => {
+    if (c.dataset.name !== name) { c.classList.remove('visible','copied'); }
+  });
+  const chip = document.getElementById('phone_' + name.replace(/\s/g,'_'));
+  if (!chip) return;
+  chip.classList.toggle('visible');
+  chip.classList.remove('copied');
+}
+
+function copyPhone(phone, chipId) {
+  navigator.clipboard.writeText(phone).then(() => {
+    const chip = document.getElementById(chipId);
+    if (chip) { chip.classList.add('copied'); chip.querySelector('.copy-hint').textContent = '✓ הועתק!'; }
+    setTimeout(() => {
+      if (chip) { chip.classList.remove('copied'); chip.querySelector('.copy-hint').textContent = 'לחץ להעתקה'; }
+    }, 2000);
+  });
 }
 // ── INIT ──
 renderRooms();
