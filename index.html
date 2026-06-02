@@ -1231,6 +1231,26 @@ window.exitAdmin = function() {
 // Apply saved edits on load
 applyEdits();
 </script>
+<!-- TRANSPORT EDIT MODAL -->
+<div class="modal-overlay" id="transportModal">
+  <div class="modal">
+    <div class="modal-title" id="transportModalTitle">✏️ עריכת נסיעה</div>
+    <input type="hidden" id="editTransportIndex">
+    <label>שם מלא</label>
+    <input type="text" id="editTransportName" placeholder="שם מלא" onkeydown="if(event.key==='Enter')saveTransport()">
+    <label style="margin-top:16px">אמצעי הגעה</label>
+    <div class="room-type-selector" style="margin-top:8px">
+      <button class="type-btn active" id="tTypeBus" onclick="setTransportType('bus')">🚌 הסעה</button>
+      <button class="type-btn green" id="tTypeSelf" onclick="setTransportType('self')">🚗 עצמאי</button>
+      <button class="type-btn" id="tTypeUnknown" onclick="setTransportType('unknown')" style="border-color:#e67e22;color:#e67e22">❓ לא ידוע</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('transportModal')">ביטול</button>
+      <button class="btn-primary" onclick="saveTransport()">שמור</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN MODAL -->
 <div class="modal-overlay" id="loginModal">
   <div class="modal">
