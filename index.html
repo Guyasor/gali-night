@@ -901,16 +901,24 @@ function openCaptionModal(files) {
 }
 
 function closeCaptionModal() {
-  document.getElementById('captionModal').classList.remove('open');
+  const modal = document.getElementById('captionModal');
+  modal.classList.remove('open');
+  modal.style.display = 'none';
+  setTimeout(() => { modal.style.display = ''; }, 100);
   document.getElementById('photoUpload').value = '';
   pendingFiles = [];
 }
 
 function confirmUpload() {
   const caption = document.getElementById('captionInput').value.trim();
-  document.getElementById('captionModal').classList.remove('open');
-  uploadFiles(pendingFiles, caption);
+  const modal = document.getElementById('captionModal');
+  modal.classList.remove('open');
+  modal.style.display = 'none';
+  setTimeout(() => { modal.style.display = ''; }, 100);
+  const files = [...pendingFiles];
   pendingFiles = [];
+  document.getElementById('photoUpload').value = '';
+  uploadFiles(files, caption);
 }
 
 function uploadFiles(files, caption) {
