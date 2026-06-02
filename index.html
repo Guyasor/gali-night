@@ -464,7 +464,9 @@ function saveRoom() {
   };
   if (isNew) { rooms.push(roomData); } else { rooms[index] = roomData; }
   saveRooms(rooms);
-  syncFromSheet();
+  renderRooms();
+renderTransport();
+syncFromSheet();
   closeModal('editModal');
 }
 
@@ -551,9 +553,6 @@ async function syncFromSheet(manual) {
     });
     saveTransportData(transport);
 
-    // Save last successful sync snapshot
-    localStorage.setItem('galiLastSync', JSON.stringify({ rooms, transport, ts: new Date().toLocaleString('he-IL') }));
-
     // Update participant count dynamically
     const countEl = document.getElementById('participantCount');
     if (countEl) countEl.textContent = nameMap.size;
@@ -564,20 +563,8 @@ async function syncFromSheet(manual) {
     const now = new Date().toLocaleTimeString('he-IL');
     setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${document.body.classList.contains('admin-mode') ? ' &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)">🔄 רענן</button>' : ''}`);
   } catch(e) {
-    setSyncStatus('error', `שגיאת סינכרון עם Google Sheets · נטען מהגיליון המקומי <button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
-    const last = (() => { try { return JSON.parse(localStorage.getItem('galiLastSync')); } catch(_){return null;} })();
-    if (last) {
-      saveRooms(last.rooms);
-      saveTransportData(last.transport);
-      const countEl = document.getElementById('participantCount');
-      if (countEl) countEl.textContent = last.rooms.reduce((a,r) => a + r.people.length, 0);
-      renderRooms();
-      renderTransport();
-      setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג מידע מסנכרון אחרון (${last.ts}) &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
-    } else {
-      setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג מידע ברירת מחדל &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
-    }
-    console.warn('Sheet sync error:',:', e);
+    console.warn('Sheet sync error:', e);
+    setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג המידע האחרון שנטען &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
   }
 }
 // ── TRANSPORT DATA ──
@@ -737,6 +724,8 @@ function deleteTransport(index) {
   renderTransport();
 }
 // ── INIT ──
+renderRooms();
+renderTransport();
 syncFromSheet();
 
 // ── DELETE ROOM ──
@@ -746,7 +735,9 @@ function deleteRoom(index) {
   if (!confirm(`למחוק את החדר של ${name}?`)) return;
   rooms.splice(index, 1);
   saveRooms(rooms);
-  syncFromSheet();
+  renderRooms();
+renderTransport();
+syncFromSheet();
 }
 
 // ── ADD ROOM ──
@@ -816,7 +807,9 @@ window.doLogin = function() {
 // Override exitAdmin
 function showAdminSyncBtn(show) {
   const bar = document.getElementById('syncBar');
-  if (bar.style.display !== 'none') syncFromSheet(); // refresh sync bar to show/hide button
+  if (bar.style.display !== 'none') renderRooms();
+renderTransport();
+syncFromSheet(); // refresh sync bar to show/hide button
 }
 window.exitAdmin = function() {
   document.body.classList.remove('admin-mode');
