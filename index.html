@@ -121,15 +121,14 @@
   .room-person { cursor: pointer; border-radius: 8px; transition: background .15s; padding: 6px 4px; }
   .room-person:hover { background: #fce4ec; }
   .phone-chip {
-    display: none; align-items: center; gap: 8px; margin: 2px 0 6px 0;
-    background: #f3e5f5; border-radius: 8px; padding: 6px 12px;
-    font-size: 13px; font-weight: 600; color: #6a1b9a; direction: ltr;
-    cursor: pointer; transition: background .15s;
+    display: none; align-items: center; gap: 8px; margin: 2px 0 8px;
+    background: #f3e5f5; border-radius: 10px; padding: 8px 14px;
+    font-size: 14px; color: #6a1b9a; direction: ltr; cursor: default;
   }
-  .phone-chip:hover { background: #e1bee7; }
-  .phone-chip.visible { display: flex; }
-  .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
-  .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
+  .phone-chip.open { display: flex; }
+  .phone-chip .copy-hint { font-size: 12px; color: #9c4dcc; margin-right: auto; cursor: pointer; padding: 2px 8px; background: #e1bee7; border-radius: 8px; }
+  .phone-chip .copy-hint:hover { background: #ce93d8; }
+  .phone-chip.copied .copy-hint { background: #c8e6c9; color: #2e7d32; }
   #phoneToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:14px; opacity:0; transition:all .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
   #phoneToast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
   /* ── DRAG & DROP ── */
@@ -146,15 +145,14 @@
   .room-person { cursor: pointer; border-radius: 8px; transition: background .15s; padding: 6px 4px; }
   .room-person:hover { background: #fce4ec; }
   .phone-chip {
-    display: none; align-items: center; gap: 8px; margin: 2px 0 6px 0;
-    background: #f3e5f5; border-radius: 8px; padding: 6px 12px;
-    font-size: 13px; font-weight: 600; color: #6a1b9a; direction: ltr;
-    cursor: pointer; transition: background .15s;
+    display: none; align-items: center; gap: 8px; margin: 2px 0 8px;
+    background: #f3e5f5; border-radius: 10px; padding: 8px 14px;
+    font-size: 14px; color: #6a1b9a; direction: ltr; cursor: default;
   }
-  .phone-chip:hover { background: #e1bee7; }
-  .phone-chip.visible { display: flex; }
-  .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
-  .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
+  .phone-chip.open { display: flex; }
+  .phone-chip .copy-hint { font-size: 12px; color: #9c4dcc; margin-right: auto; cursor: pointer; padding: 2px 8px; background: #e1bee7; border-radius: 8px; }
+  .phone-chip .copy-hint:hover { background: #ce93d8; }
+  .phone-chip.copied .copy-hint { background: #c8e6c9; color: #2e7d32; }
   #phoneToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:14px; opacity:0; transition:all .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
   #phoneToast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
   /* ── DRAG & DROP ── */
@@ -419,7 +417,17 @@ function renderRooms() {
     else pairNum++;
     const label = isSingle ? `חדר יחיד ${singleNum}` : `זוג חדר ${pairNum}`;
     const dotColor = isSingle ? '#4db6a3' : '#f9a8c9';
-    const persons = room.people.map(p => `<div class="room-person">${isSingle ? '👤' : '👤'} ${p}</div>`).join('');
+    const phones = loadPhones();
+    const persons = room.people.map(p => {
+      const safeId = 'ph_' + btoa(unescape(encodeURIComponent(p))).replace(/[^a-zA-Z0-9]/g,'');
+      const phone = phones[p] || '';
+      return `<div class="room-person" onclick="togglePhone('${safeId}','${p}')">👤 ${p}</div>
+        <div class="phone-chip" id="${safeId}">
+          ${phone
+            ? `📞 <strong>${phone}</strong><span class="copy-hint" onclick="event.stopPropagation();copyPhone('${phone}','${safeId}')">לחץ להעתיק</span>`
+            : `<span style="color:#aaa;font-size:12px">אין מספר טלפון</span>`}
+        </div>`;
+    }).join('');
     return `<div class="room-card ${isSingle ? 'single' : ''}">
       <button class="admin-edit-btn" onclick="openEdit(${i})">✏️ עריכה</button><button class="admin-delete-btn" onclick="deleteRoom(${i})">🗑 מחק</button>
       <div class="room-number"><span class="dot"></span>${label}</div>
@@ -779,21 +787,12 @@ function deleteTransport(index) {
 const PHONES_KEY = 'galiPhones';
 function loadPhones() { try { return JSON.parse(localStorage.getItem(PHONES_KEY) || '{}'); } catch(e) { return {}; } }
 
-function showPhone(name) {
-  document.querySelectorAll('.phone-chip.visible').forEach(c => {
-    if (c.dataset.name !== name) { c.classList.remove('visible','copied'); }
+function togglePhone(id, name) {
+  document.querySelectorAll('.phone-chip.open').forEach(c => {
+    if (c.id !== id) c.classList.remove('open');
   });
-  const chip = document.getElementById('phone_' + name.replace(/\s/g,'_'));
-  if (!chip) {
-    // No phone — show brief toast
-    const toast = document.getElementById('phoneToast');
-    toast.textContent = name + ' — אין מספר טלפון';
-    toast.classList.add('visible');
-    setTimeout(() => toast.classList.remove('visible'), 2000);
-    return;
-  }
-  chip.classList.toggle('visible');
-  chip.classList.remove('copied');
+  const chip = document.getElementById(id);
+  if (chip) chip.classList.toggle('open');
 }
 
 function copyPhone(phone, chipId) {
