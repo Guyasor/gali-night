@@ -130,6 +130,8 @@
   .phone-chip.visible { display: flex; }
   .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
   .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
+  #phoneToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:14px; opacity:0; transition:all .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
+  #phoneToast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
   /* ── DRAG & DROP ── */
   /* ── SHEET SYNC ── */
   .sync-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; background: #e0f2ef; border-radius: 12px; margin: 0 16px 20px; font-size: 13px; color: #2a7a6a; font-weight: 600; max-width: 860px; margin: 0 auto 20px; }
@@ -153,6 +155,8 @@
   .phone-chip.visible { display: flex; }
   .phone-chip .copy-hint { font-size: 11px; color: #9c4dcc; margin-right: auto; }
   .phone-chip.copied { background: #e8f5e9; color: #2e7d32; }
+  #phoneToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:14px; opacity:0; transition:all .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
+  #phoneToast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
   /* ── DRAG & DROP ── */
   body.admin-mode .transport-pill-wrap[draggable="true"] { cursor: grab; }
   .transport-pill-wrap.dragging { opacity: 0.35; transform: scale(0.95); }
@@ -286,6 +290,7 @@
   <button class="add-transport-btn" onclick="openAddTransport()">+ הוסף איש לרשימה</button>
 </div>
 <!-- FOOTER -->
+<div id="phoneToast"></div>
 <footer>
   <div>צוות אורט אורנית – סוגרים שנה 2025/2026 🌊 • מלון וורט לגון, נתניה לגון, נתניה</div>
   <div style="margin-top:10px"><button class="admin-link" onclick="openAdminLogin()">🔐</button></div>
@@ -545,9 +550,18 @@ function setSyncStatus(state, msg) {
 async function syncFromSheet(manual) {
   setSyncStatus('loading', 'מסנכרן עם Google Sheets...');
   try {
-    const res = await fetch(SHEET_CSV + '&t=' + Date.now());
-    if (!res.ok) throw new Error(res.status);
-    const csv = await res.text();
+    let csv;
+    try {
+      const res = await fetch(SHEET_CSV + '&t=' + Date.now());
+      if (!res.ok) throw new Error(res.status);
+      csv = await res.text();
+    } catch(_) {
+      // Fallback via CORS proxy for mobile browsers
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_CSV);
+      const res2 = await fetch(proxyUrl);
+      if (!res2.ok) throw new Error(res2.status);
+      csv = await res2.text();
+    }
     const allRows = parseCSV(csv).slice(1).filter(r => r[0]?.trim());
 
     // Build name→row map
@@ -766,12 +780,18 @@ const PHONES_KEY = 'galiPhones';
 function loadPhones() { try { return JSON.parse(localStorage.getItem(PHONES_KEY) || '{}'); } catch(e) { return {}; } }
 
 function showPhone(name) {
-  // Close any open chips first
   document.querySelectorAll('.phone-chip.visible').forEach(c => {
     if (c.dataset.name !== name) { c.classList.remove('visible','copied'); }
   });
   const chip = document.getElementById('phone_' + name.replace(/\s/g,'_'));
-  if (!chip) return;
+  if (!chip) {
+    // No phone — show brief toast
+    const toast = document.getElementById('phoneToast');
+    toast.textContent = name + ' — אין מספר טלפון';
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2000);
+    return;
+  }
   chip.classList.toggle('visible');
   chip.classList.remove('copied');
 }
