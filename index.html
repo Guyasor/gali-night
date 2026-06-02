@@ -551,6 +551,9 @@ async function syncFromSheet(manual) {
     });
     saveTransportData(transport);
 
+    // Save last successful sync snapshot
+    localStorage.setItem('galiLastSync', JSON.stringify({ rooms, transport, ts: new Date().toLocaleString('he-IL') }));
+
     // Update participant count dynamically
     const countEl = document.getElementById('participantCount');
     if (countEl) countEl.textContent = nameMap.size;
@@ -562,7 +565,19 @@ async function syncFromSheet(manual) {
     setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${document.body.classList.contains('admin-mode') ? ' &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)">🔄 רענן</button>' : ''}`);
   } catch(e) {
     setSyncStatus('error', `שגיאת סינכרון עם Google Sheets · נטען מהגיליון המקומי <button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
-    console.warn('Sheet sync error:', e);
+    const last = (() => { try { return JSON.parse(localStorage.getItem('galiLastSync')); } catch(_){return null;} })();
+    if (last) {
+      saveRooms(last.rooms);
+      saveTransportData(last.transport);
+      const countEl = document.getElementById('participantCount');
+      if (countEl) countEl.textContent = last.rooms.reduce((a,r) => a + r.people.length, 0);
+      renderRooms();
+      renderTransport();
+      setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג מידע מסנכרון אחרון (${last.ts}) &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
+    } else {
+      setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג מידע ברירת מחדל &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
+    }
+    console.warn('Sheet sync error:',:', e);
   }
 }
 // ── TRANSPORT DATA ──
