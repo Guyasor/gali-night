@@ -578,12 +578,9 @@ function saveRoom() {
     people: editType === 'pair' ? (p2 ? [p1, p2] : [p1]) : [p1]
   };
   if (isNew) { rooms.push(roomData); } else { rooms[index] = roomData; }
+  localStorage.setItem('galiManualEdit', Date.now());
   saveRooms(rooms);
   renderRooms();
-renderTransport();
-syncFromSheet();
-listenPhotos();
-initChat();
   closeModal('editModal');
 }
 
@@ -667,7 +664,11 @@ async function syncFromSheet(manual) {
         rooms.push({ type: 'single', people: [name] });
       }
     }
-    saveRooms(rooms);
+    // Only overwrite rooms/transport if no manual admin edits exist
+    const hasManualEdits = localStorage.getItem('galiManualEdit');
+    if (!hasManualEdits || manual) {
+      saveRooms(rooms);
+    }
 
     // Parse transport
     const transport = [...nameMap.entries()].map(([name, row]) => {
@@ -677,7 +678,9 @@ async function syncFromSheet(manual) {
       else if (t.includes('עצמא')) type = 'self';
       return { name, type };
     });
-    saveTransportData(transport);
+    if (!hasManualEdits || manual) {
+      saveTransportData(transport);
+    }
 
     // Save phone numbers map
     const phones = {};
@@ -699,7 +702,12 @@ async function syncFromSheet(manual) {
     renderTransport();
 
     const now = new Date().toLocaleTimeString('he-IL');
-    setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${document.body.classList.contains('admin-mode') ? ' &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)">🔄 רענן</button>' : ''}`);
+    const hasOverride = localStorage.getItem('galiManualEdit');
+    const adminBtns = document.body.classList.contains('admin-mode')
+      ? ` &nbsp;<button class="sync-btn" onclick="resetToSheet()">↺ איפוס מה-Sheet</button>`
+      : '';
+    const overrideNote = hasOverride ? ' <span style="color:#e67e22;font-size:11px">· עריכות ידניות פעילות</span>' : '';
+    setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${overrideNote}${adminBtns}`);
   } catch(e) {
     console.warn('Sheet sync error:', e);
     setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג המידע האחרון שנטען &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
@@ -858,6 +866,7 @@ function saveTransport() {
   } else {
     people[parseInt(rawIdx)] = {name, type: editTransportType};
   }
+  localStorage.setItem('galiManualEdit', Date.now());
   saveTransportData(people);
   renderTransport();
   closeModal('transportModal');
@@ -867,6 +876,7 @@ function deleteTransport(index) {
   const people = loadTransport();
   if (!confirm(`למחוק את ${people[index].name}?`)) return;
   people.splice(index, 1);
+  localStorage.setItem('galiManualEdit', Date.now());
   saveTransportData(people);
   renderTransport();
 }
@@ -1107,6 +1117,15 @@ function listenMessages() {
     box.scrollTop = box.scrollHeight;
   });
 }
+// ── RESET TO SHEET ──
+function resetToSheet() {
+  if (!confirm('לאפס חדרים והסעות לפי הגיליון? כל העריכות הידניות ימחקו.')) return;
+  localStorage.removeItem('galiManualEdit');
+  localStorage.removeItem('galiRooms');
+  localStorage.removeItem('galiTransport');
+  syncFromSheet(true);
+}
+
 // ── WAZE ──
 const WAZE_LOCATIONS = {
   hotel:     { query: 'מלון וורט לגון נתניה',      web: 'https://waze.com/ul/hsv8zbburq' },
