@@ -322,7 +322,7 @@
   <div class="stats-row">
     <div class="stat-box"><div class="stat-num">2</div><div class="stat-label">ימים של כיף</div></div>
     <div class="stat-box"><div class="stat-num" id="participantCount">45</div><div class="stat-label">משתתפים</div></div>
-    <div class="stat-box" onclick="openWaze('hsv8zbburq')" style="cursor:pointer"><div class="stat-num">🏨</div><div class="stat-label">מלון וורט לגון<br>נתניה<br><span style="color:#00c0e0;font-size:11px;">📍 פתח ב-Waze</span></div></div>
+    <div class="stat-box" onclick="openWaze('hotel')" style="cursor:pointer"><div class="stat-num">🏨</div><div class="stat-label">מלון וורט לגון<br>נתניה<br><span style="color:#00c0e0;font-size:11px;">📍 פתח ב-Waze</span></div></div>
   </div>
   <div class="day-card">
     <div class="day-header monday">🌅 <span data-editable="daymon" contenteditable="false">יום שני, 22.6</span></div>
@@ -360,7 +360,7 @@
     <div style="font-size:18px;font-weight:700;color:#c84b7a;margin-bottom:8px;">🚌 נקודת יציאה – הסעה</div>
     <div style="font-size:16px;color:#555;">קריית החינוך אורנית</div>
     <div style="font-size:22px;font-weight:900;color:#c84b7a;margin-top:8px;">יום שני 22.6 בשעה 14:00</div>
-    <button onclick="openWaze('hsv8ysrf3j')" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:#00c0e0;color:white;padding:10px 22px;border-radius:20px;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:Heebo,sans-serif;">📍 נווט לנקודת יציאה</button>
+    <button onclick="openWaze('departure')" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:#00c0e0;color:white;padding:10px 22px;border-radius:20px;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:Heebo,sans-serif;">📍 נווט לנקודת יציאה</button>
   </div>
   <button class="add-transport-btn" onclick="openAddTransport()">+ הוסף איש לרשימה</button>
 </div>
@@ -1102,21 +1102,23 @@ function listenMessages() {
   });
 }
 // ── WAZE ──
-function openWaze(shortCode) {
-  const webUrl = 'https://waze.com/ul/' + shortCode;
-  const appUrl = 'waze://ul/' + shortCode;
+const WAZE_LOCATIONS = {
+  hotel:     { query: 'מלון וורט לגון נתניה',      web: 'https://waze.com/ul/hsv8zbburq' },
+  departure: { query: 'קריית החינוך אורנית',        web: 'https://waze.com/ul/hsv8ysrf3j' }
+};
+
+function openWaze(key) {
+  const loc = WAZE_LOCATIONS[key];
+  if (!loc) return;
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (isMobile) {
-    // Try to open Waze app directly
+    const appUrl = 'waze://?q=' + encodeURIComponent(loc.query) + '&navigate=yes';
     window.location.href = appUrl;
-    // Fallback to web if app not installed (after 1.5s)
     setTimeout(() => {
-      if (document.visibilityState !== 'hidden') {
-        window.open(webUrl, '_blank');
-      }
+      if (document.visibilityState !== 'hidden') window.open(loc.web, '_blank');
     }, 1500);
   } else {
-    window.open(webUrl, '_blank');
+    window.open(loc.web, '_blank');
   }
 }
 
