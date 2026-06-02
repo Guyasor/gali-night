@@ -216,7 +216,7 @@
   <div class="section-title">לו"ז הטיול</div>
   <div class="stats-row">
     <div class="stat-box"><div class="stat-num">2</div><div class="stat-label">ימים של כיף</div></div>
-    <div class="stat-box"><div class="stat-num">45</div><div class="stat-label">משתתפים</div></div>
+    <div class="stat-box"><div class="stat-num" id="participantCount">45</div><div class="stat-label">משתתפים</div></div>
     <div class="stat-box"><div class="stat-num">🏨</div><div class="stat-label"><a href="https://waze.com/ul/hsv8zbburq" target="_blank" style="color:inherit;text-decoration:none;">🏨 מלון וורט לגון<br>נתניה<br><span style="color:#00c0e0;font-size:11px;">📍 Waze</span></a></div></div>
   </div>
   <div class="day-card">
@@ -550,6 +550,10 @@ async function syncFromSheet(manual) {
       return { name, type };
     });
     saveTransportData(transport);
+
+    // Update participant count dynamically
+    const countEl = document.getElementById('participantCount');
+    if (countEl) countEl.textContent = nameMap.size;
 
     renderRooms();
     renderTransport();
