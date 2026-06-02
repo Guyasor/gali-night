@@ -660,15 +660,25 @@ async function syncFromSheet(manual) {
     const nameMap = new Map();
     allRows.forEach(r => { const n = r[0]?.trim(); if (n) nameMap.set(n, r); });
 
-    // Parse rooms
-    const seen = new Set(), rooms = [];
+    // Parse rooms — detect true duplicates (non-reciprocal pairs)
+    const reciprocalPairs = new Set();
+    const rooms = [];
     for (const [name, row] of nameMap) {
-      if (seen.has(name)) continue;
-      seen.add(name);
       const mate = row[2]?.trim();
-      if (mate && nameMap.has(mate) && !seen.has(mate)) {
-        seen.add(mate);
-        rooms.push({ type: 'pair', people: [name, mate] });
+      if (mate && nameMap.has(mate)) {
+        const matesMate = nameMap.get(mate)[2]?.trim();
+        const isReciprocal = matesMate === name;
+        const pairKey = [name, mate].sort().join('§');
+        if (isReciprocal) {
+          // Clean mutual pair — add once
+          if (!reciprocalPairs.has(pairKey)) {
+            reciprocalPairs.add(pairKey);
+            rooms.push({ type: 'pair', people: [name, mate] });
+          }
+        } else {
+          // Non-reciprocal — name wants mate but mate listed elsewhere → show duplicate warning
+          rooms.push({ type: 'pair', people: [name, mate] });
+        }
       } else {
         rooms.push({ type: 'single', people: [name] });
       }
@@ -712,11 +722,12 @@ async function syncFromSheet(manual) {
 
     const now = new Date().toLocaleTimeString('he-IL');
     const hasOverride = localStorage.getItem('galiManualEdit');
-    const adminBtns = document.body.classList.contains('admin-mode')
+    const isAdmin = document.body.classList.contains('admin-mode');
+    const resetBtn = (isAdmin && hasOverride)
       ? ` &nbsp;<button class="sync-btn" onclick="resetToSheet()">↺ איפוס מה-Sheet</button>`
       : '';
-    const overrideNote = hasOverride ? ' <span style="color:#e67e22;font-size:11px">· עריכות ידניות פעילות</span>' : '';
-    setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${overrideNote}${adminBtns}`);
+    const overrideNote = (isAdmin && hasOverride) ? ' <span style="color:#e67e22;font-size:11px">· עריכות ידניות פעילות</span>' : '';
+    setSyncStatus('ok', `מסונכרן עם Google Sheets · עודכן ${now}${overrideNote}${resetBtn}`);
   } catch(e) {
     console.warn('Sheet sync error:', e);
     setSyncStatus('error', `⚠️ שגיאת סינכרון — מוצג המידע האחרון שנטען &nbsp;<button class="sync-btn" onclick="syncFromSheet(true)" style="background:#c84b7a">🔄 נסה שוב</button>`);
