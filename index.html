@@ -405,6 +405,10 @@
   <div id="chatMessages" style="background:white;border-radius:16px;padding:16px;margin-bottom:16px;min-height:300px;max-height:500px;overflow-y:auto;box-shadow:0 3px 14px rgba(200,75,122,0.1);display:flex;flex-direction:column;gap:10px">
     <div style="text-align:center;color:#ccc;font-size:14px;margin:auto">טוען הודעות...</div>
   </div>
+  <div id="notifBanner" style="display:none;background:#fff8e1;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#f57f17;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <span>🔔 הפעל התראות כדי לקבל עדכון על הודעות חדשות</span>
+    <button onclick="enableNotifications()" style="background:#f57f17;color:white;border:none;border-radius:10px;padding:6px 14px;font-family:Heebo,sans-serif;font-weight:700;cursor:pointer;font-size:13px">הפעל</button>
+  </div>
   <div id="chatInputBar" style="display:flex;gap:10px">
     <input id="chatInput" type="text" placeholder="כתוב הודעה..." style="flex:1;border:2px solid #f9a8c9;border-radius:20px;padding:10px 16px;font-family:Heebo,sans-serif;font-size:15px;outline:none" onkeydown="if(event.key===''Enter'')sendMessage()">
     <button onclick="sendMessage()" style="background:#c84b7a;color:white;border:none;border-radius:20px;padding:10px 20px;font-family:Heebo,sans-serif;font-weight:700;font-size:16px;cursor:pointer">שלח ➤</button>
@@ -1092,6 +1096,8 @@ function initChat() {
   const nameBar = document.getElementById('chatNameBar');
   if (!chatName) {
     nameBar.style.display = 'flex';
+  } else {
+    requestNotifPermission();
   }
   listenMessages();
 }
@@ -1102,6 +1108,47 @@ function setChatName() {
   chatName = val;
   localStorage.setItem(CHAT_NAME_KEY, chatName);
   document.getElementById('chatNameBar').style.display = 'none';
+  requestNotifPermission();
+}
+
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(updateNotifBanner);
+  }
+  updateNotifBanner();
+}
+
+function updateNotifBanner() {
+  const banner = document.getElementById('notifBanner');
+  if (!banner) return;
+  const show = 'Notification' in window && Notification.permission === 'default';
+  banner.style.display = show ? 'flex' : 'none';
+}
+
+function enableNotifications() {
+  if (!('Notification' in window)) { alert('הדפדפן שלך לא תומך בהתראות'); return; }
+  Notification.requestPermission().then(perm => {
+    updateNotifBanner();
+    if (perm === 'granted') {
+      document.getElementById('notifBanner').style.display = 'none';
+      new Notification('✅ התראות הופעלו!', { body: 'תקבל התראה על כל הודעה חדשה בצ\'אט', icon: 'ort-logo.jpeg' });
+    }
+  });
+}
+
+function showChatNotif(senderName, text) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible') return;
+  try {
+    new Notification(`💬 ${senderName}`, {
+      body: text.length > 80 ? text.slice(0,80) + '...' : text,
+      icon: 'ort-logo.jpeg',
+      tag: 'gali-chat',
+      dir: 'rtl',
+      lang: 'he'
+    });
+  } catch(e) {}
 }
 
 function sendMessage() {
@@ -1120,10 +1167,32 @@ function sendMessage() {
   });
 }
 
+let lastMsgCount = 0;
+let chatInitialized = false;
+
 function listenMessages() {
   db.collection('messages').orderBy('ts','asc').onSnapshot(snap => {
     const box = document.getElementById('chatMessages');
-    if (snap.empty) { box.innerHTML = '<div style="text-align:center;color:#ccc;font-size:14px;margin:auto">עוד אין הודעות — שלח ראשון! 👋</div>'; return; }
+    if (snap.empty) {
+      lastMsgCount = 0;
+      chatInitialized = true;
+      box.innerHTML = '<div style="text-align:center;color:#ccc;font-size:14px;margin:auto">עוד אין הודעות — שלח ראשון! 👋</div>';
+      return;
+    }
+
+    // Detect new messages for notifications
+    if (chatInitialized && snap.docs.length > lastMsgCount) {
+      const newDocs = snap.docs.slice(lastMsgCount);
+      newDocs.forEach(doc => {
+        const d = doc.data();
+        if (d.name !== chatName) {
+          showChatNotif(d.name, d.text);
+        }
+      });
+    }
+    lastMsgCount = snap.docs.length;
+    chatInitialized = true;
+
     box.innerHTML = snap.docs.map(doc => {
       const d = doc.data();
       const isMine = d.name === chatName;
