@@ -20,8 +20,9 @@
 
   /* ── TABS ── */
   .tabs { display: flex; justify-content: center; gap: 12px; padding: 28px 16px 0; flex-wrap: wrap; }
-  .tab-btn { background: white; border: 2px solid #f9a8c9; color: #c84b7a; padding: 10px 28px; border-radius: 50px; font-size: 16px; font-weight: 700; font-family: 'Heebo', sans-serif; cursor: pointer; transition: all .2s; }
+  .tab-btn { background: white; border: 2px solid #f9a8c9; color: #c84b7a; padding: 10px 28px; border-radius: 50px; font-size: 16px; font-weight: 700; font-family: 'Heebo', sans-serif; cursor: pointer; transition: all .2s; position: relative; }
   .tab-btn:hover, .tab-btn.active { background: #c84b7a; color: white; border-color: #c84b7a; box-shadow: 0 4px 14px rgba(200,75,122,0.3); }
+  .tab-badge { position: absolute; top: -6px; left: -6px; background: #e53935; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 4px; box-shadow: 0 2px 6px rgba(229,57,53,0.5); }
 
   /* ── SECTIONS ── */
   .section { display: none; max-width: 860px; margin: 32px auto 60px; padding: 0 16px; }
@@ -307,6 +308,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
@@ -331,7 +333,7 @@
   <button class="tab-btn" onclick="showTab('rooms',this)">🏨 חלוקת חדרים</button>
   <button class="tab-btn" onclick="showTab('transport',this)">🚌 הסעות</button>
   <button class="tab-btn" onclick="showTab('photos',this)">📸 תמונות</button>
-  <button class="tab-btn" onclick="showTab('chat',this)">💬 צ'אט</button>
+  <button class="tab-btn" id="chatTabBtn" onclick="showTab('chat',this)">💬 צ'אט<span class="tab-badge" id="chatBadge" style="display:none">0</span></button>
 </div>
 
 <div class="sync-bar" id="syncBar" style="display:none">
@@ -421,9 +423,12 @@
   <div id="chatMessages" style="background:white;border-radius:16px;padding:16px;margin-bottom:16px;min-height:300px;max-height:500px;overflow-y:auto;box-shadow:0 3px 14px rgba(200,75,122,0.1);display:flex;flex-direction:column;gap:10px">
     <div style="text-align:center;color:#ccc;font-size:14px;margin:auto">טוען הודעות...</div>
   </div>
-  <div id="notifBanner" style="display:none;background:#fff8e1;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#f57f17;font-weight:600;align-items:center;justify-content:space-between;gap:10px">
-    <span>🔔 הפעל התראות כדי לקבל עדכון על הודעות חדשות</span>
-    <button onclick="enableNotifications()" style="background:#f57f17;color:white;border:none;border-radius:10px;padding:6px 14px;font-family:Heebo,sans-serif;font-weight:700;cursor:pointer;font-size:13px">הפעל</button>
+  <div id="notifBanner" style="display:none;background:linear-gradient(135deg,#fff8e1,#fff3e0);border-radius:14px;padding:14px 18px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:12px;border:2px solid #ffcc02">
+    <div>
+      <div style="font-size:15px;font-weight:800;color:#e65100">🔔 קבל התראות על הודעות חדשות</div>
+      <div style="font-size:12px;color:#f57f17;margin-top:2px">גם כשהאפליקציה ברקע</div>
+    </div>
+    <button onclick="enableNotifications()" style="background:#e65100;color:white;border:none;border-radius:12px;padding:9px 20px;font-family:Heebo,sans-serif;font-weight:700;cursor:pointer;font-size:14px;white-space:nowrap">הפעל 🔔</button>
   </div>
   <div id="chatInputBar" style="display:flex;gap:10px">
     <input id="chatInput" type="text" placeholder="כתוב הודעה..." style="flex:1;border:2px solid #f9a8c9;border-radius:20px;padding:10px 16px;font-family:Heebo,sans-serif;font-size:15px;outline:none" onkeydown="if(event.key===''Enter'')sendMessage()">
@@ -547,6 +552,8 @@ function showTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (btn) btn.classList.add('active');
+  chatTabActive = (id === 'chat');
+  if (chatTabActive) { unreadCount = 0; updateChatBadge(); updateNotifBanner(); }
 }
 
 // ── ADMIN ──
@@ -1113,7 +1120,8 @@ function initChat() {
   if (!chatName) {
     nameBar.style.display = 'flex';
   } else {
-    requestNotifPermission();
+    updateNotifBanner();
+    if ('Notification' in window && Notification.permission === 'granted') registerFCM();
   }
   listenMessages();
 }
@@ -1127,30 +1135,64 @@ function setChatName() {
   requestNotifPermission();
 }
 
+// FCM messaging instance
+let fbMessaging = null;
+try { fbMessaging = firebase.messaging(); } catch(e) {}
+
+async function registerFCM() {
+  if (!fbMessaging) return;
+  try {
+    // Register service worker
+    const sw = await navigator.serviceWorker.register('/gali-night/firebase-messaging-sw.js');
+    // Get FCM token (VAPID key from Firebase Console > Project Settings > Cloud Messaging)
+    const token = await fbMessaging.getToken({
+      vapidKey: 'BLBwJFlEsHbkBLTnHJrIvbXDAtmA4iiXFRYJTtpJQA4C5dVAXGwjAaYKQ7PgjKj1OYgjWo5UMp8d71XnMvFP8DA',
+      serviceWorkerRegistration: sw
+    });
+    if (token) {
+      // Save token to Firestore so others can notify this device
+      await db.collection('fcm_tokens').doc(token).set({
+        token, name: chatName || 'אנונימי',
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    updateNotifBanner();
+  } catch(e) { console.warn('FCM register error:', e); updateNotifBanner(); }
+}
+
 function requestNotifPermission() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    Notification.requestPermission().then(updateNotifBanner);
-  }
   updateNotifBanner();
 }
 
 function updateNotifBanner() {
   const banner = document.getElementById('notifBanner');
   if (!banner) return;
-  const show = 'Notification' in window && Notification.permission === 'default';
-  banner.style.display = show ? 'flex' : 'none';
+  const supported = 'Notification' in window && 'serviceWorker' in navigator;
+  const perm = supported ? Notification.permission : 'denied';
+  banner.style.display = (supported && perm !== 'granted') ? 'flex' : 'none';
 }
 
 function enableNotifications() {
   if (!('Notification' in window)) { alert('הדפדפן שלך לא תומך בהתראות'); return; }
   Notification.requestPermission().then(perm => {
-    updateNotifBanner();
     if (perm === 'granted') {
-      document.getElementById('notifBanner').style.display = 'none';
-      new Notification('✅ התראות הופעלו!', { body: 'תקבל התראה על כל הודעה חדשה בצ\'אט', icon: 'ort-logo.jpeg' });
+      registerFCM();
     }
+    updateNotifBanner();
   });
+}
+
+function showChatNotif(senderName, text) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    new Notification(`💬 ${senderName}`, {
+      body: text.length > 80 ? text.slice(0,80) + '...' : text,
+      icon: 'https://guyasor.github.io/gali-night/ort-logo.jpeg',
+      tag: 'gali-chat-' + Date.now(),
+      dir: 'rtl',
+      lang: 'he'
+    });
+  } catch(e) { console.warn('Notif error:', e); }
 }
 
 function showChatNotif(senderName, text) {
@@ -1185,6 +1227,20 @@ function sendMessage() {
 
 let lastMsgCount = 0;
 let chatInitialized = false;
+let unreadCount = 0;
+let chatTabActive = false;
+
+function updateChatBadge() {
+  const badge = document.getElementById('chatBadge');
+  if (!badge) return;
+  if (unreadCount > 0 && !chatTabActive) {
+    badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+    unreadCount = 0;
+  }
+}
 
 function listenMessages() {
   db.collection('messages').orderBy('ts','asc').onSnapshot(snap => {
@@ -1196,13 +1252,14 @@ function listenMessages() {
       return;
     }
 
-    // Detect new messages for notifications
+    // Detect new messages for notifications + unread badge
     if (chatInitialized && snap.docs.length > lastMsgCount) {
       const newDocs = snap.docs.slice(lastMsgCount);
       newDocs.forEach(doc => {
         const d = doc.data();
         if (d.name !== chatName) {
           showChatNotif(d.name, d.text);
+          if (!chatTabActive) { unreadCount++; updateChatBadge(); }
         }
       });
     }
