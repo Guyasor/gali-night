@@ -1146,7 +1146,7 @@ async function registerFCM() {
     const sw = await navigator.serviceWorker.register('/gali-night/firebase-messaging-sw.js');
     // Get FCM token (VAPID key from Firebase Console > Project Settings > Cloud Messaging)
     const token = await fbMessaging.getToken({
-      vapidKey: 'BLBwJFlEsHbkBLTnHJrIvbXDAtmA4iiXFRYJTtpJQA4C5dVAXGwjAaYKQ7PgjKj1OYgjWo5UMp8d71XnMvFP8DA',
+      vapidKey: 'Xu4W6V_H9L-CqoBxNUlEI8EaYWaYIUQBjeJgLGTupx4',
       serviceWorkerRegistration: sw
     });
     if (token) {
