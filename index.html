@@ -64,6 +64,10 @@
   .pack-text { font-size:15px;font-weight:600;color:#2d2d2d;flex:1; }
   .pack-reset-btn { display:block;margin:20px auto 0;background:none;border:2px solid #f9a8c9;color:#c84b7a;border-radius:20px;padding:8px 24px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s; }
   .pack-reset-btn:hover { background:#fce4ec; }
+  .pack-item .pack-delete { display:none;background:none;border:none;color:#e0e0e0;font-size:16px;cursor:pointer;padding:0 2px;margin-right:-4px;line-height:1; }
+  .pack-item .pack-delete:hover { color:#e53935; }
+  body.admin-mode .pack-item .pack-delete { display:block; }
+  body.admin-mode #adminPackAdd { display:block !important; }
   /* ── ROOMS ── */
   .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
   .room-card { background: white; border-radius: 18px; padding: 18px 20px; box-shadow: 0 3px 16px rgba(200,75,122,0.1); border-top: 4px solid #f9a8c9; position: relative; transition: transform .15s, box-shadow .15s; }
@@ -394,7 +398,14 @@
   </div>
   <div class="pack-status" id="packStatus">0 מתוך 12 פריטים</div>
   <div class="pack-grid" id="packGrid"></div>
-  <button class="pack-reset-btn" onclick="resetPacking()">↺ אפס הכל</button>
+  <div class="admin-pack-add" style="display:none" id="adminPackAdd">
+    <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+      <input type="text" id="newPackEmoji" placeholder="😊" maxlength="2" style="width:52px;text-align:center;border:2px solid #f9a8c9;border-radius:10px;padding:8px;font-size:20px;outline:none">
+      <input type="text" id="newPackText" placeholder="שם הפריט..." style="flex:1;border:2px solid #f9a8c9;border-radius:10px;padding:8px 14px;font-size:15px;font-family:Heebo,sans-serif;outline:none" onkeydown="if(event.key==='Enter')addPackItem()">
+      <button onclick="addPackItem()" style="background:#c84b7a;color:white;border:none;border-radius:10px;padding:9px 18px;font-family:Heebo,sans-serif;font-weight:700;cursor:pointer;font-size:15px">+ הוסף</button>
+    </div>
+  </div>
+  <button class="pack-reset-btn" onclick="resetPacking()">↺ אפס סימונים</button>
 </div>
 
 <!-- ROOMS -->
@@ -1383,6 +1394,8 @@ function openWaze(key) {
 
 // ── PACKING LIST ──
 const PACK_ITEMS = [
+  { emoji: '👙', text: 'בגד ים' },
+  { emoji: '👙', text: 'בגד ים' },
   { emoji: '👡', text: 'כפכפים לבריכה / ים' },
   { emoji: '👕', text: 'בגדים נוחים ליום השני' },
   { emoji: '🌙', text: 'פיג\'מה' },
@@ -1397,9 +1410,16 @@ const PACK_ITEMS = [
   { emoji: '💧', text: 'בקבוק מים רב-פעמי' }
 ];
 const PACK_KEY = 'galiPackingList';
+const PACK_CUSTOM_KEY = 'galiPackingCustom';
 
 function loadPackState() {
   try { return JSON.parse(localStorage.getItem(PACK_KEY) || '[]'); } catch(e) { return []; }
+}
+function loadCustomItems() {
+  try { return JSON.parse(localStorage.getItem(PACK_CUSTOM_KEY) || '[]'); } catch(e) { return []; }
+}
+function getAllPackItems() {
+  return [...PACK_ITEMS, ...loadCustomItems()];
 }
 
 function renderPacking() {
@@ -1408,23 +1428,27 @@ function renderPacking() {
   const bar = document.getElementById('packBar');
   const status = document.getElementById('packStatus');
   if (!grid) return;
+  const allItems = getAllPackItems();
   const count = checked.length;
-  const total = PACK_ITEMS.length;
-  const pct = Math.round(count / total * 100);
+  const total = allItems.length;
+  const pct = total > 0 ? Math.round(count / total * 100) : 0;
   bar.style.width = pct + '%';
-  if (count === total) {
+  if (total > 0 && count === total) {
     status.textContent = '✅ הכל ארוז! יאללה לים! 🌊';
     status.classList.add('done');
   } else {
     status.textContent = count + ' מתוך ' + total + ' פריטים ✓';
     status.classList.remove('done');
   }
-  grid.innerHTML = PACK_ITEMS.map((item, i) => {
+  grid.innerHTML = allItems.map((item, i) => {
     const isChecked = checked.includes(i);
+    const isCustom = i >= PACK_ITEMS.length;
+    const delBtn = `<button class="pack-delete" onclick="event.stopPropagation();deletePackItem(${i})" title="מחק">✕</button>`;
     return `<div class="pack-item ${isChecked ? 'checked' : ''}" onclick="togglePackItem(${i})">
       <div class="pack-check">${isChecked ? '✓' : ''}</div>
       <span class="pack-emoji">${item.emoji}</span>
       <span class="pack-text">${item.text}</span>
+      ${delBtn}
     </div>`;
   }).join('');
 }
@@ -1434,6 +1458,30 @@ function togglePackItem(i) {
   const idx = checked.indexOf(i);
   if (idx === -1) checked.push(i);
   else checked.splice(idx, 1);
+  localStorage.setItem(PACK_KEY, JSON.stringify(checked));
+  renderPacking();
+}
+
+function addPackItem() {
+  const emoji = document.getElementById('newPackEmoji').value.trim() || '📦';
+  const text = document.getElementById('newPackText').value.trim();
+  if (!text) { document.getElementById('newPackText').focus(); return; }
+  const custom = loadCustomItems();
+  custom.push({ emoji, text });
+  localStorage.setItem(PACK_CUSTOM_KEY, JSON.stringify(custom));
+  document.getElementById('newPackEmoji').value = '';
+  document.getElementById('newPackText').value = '';
+  renderPacking();
+}
+
+function deletePackItem(i) {
+  const builtIn = PACK_ITEMS.length;
+  if (i < builtIn) { alert('לא ניתן למחוק פריט מובנה'); return; }
+  const custom = loadCustomItems();
+  custom.splice(i - builtIn, 1);
+  localStorage.setItem(PACK_CUSTOM_KEY, JSON.stringify(custom));
+  // Clean up checked state
+  const checked = loadPackState().filter(c => c !== i).map(c => c > i ? c - 1 : c);
   localStorage.setItem(PACK_KEY, JSON.stringify(checked));
   renderPacking();
 }
