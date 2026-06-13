@@ -1539,7 +1539,20 @@ function applyEdits() {
 function enableEditables(on) {
   document.querySelectorAll('[data-editable]').forEach(el => {
     el.contentEditable = on ? 'true' : 'false';
+    if (on) {
+      el.addEventListener('blur', autoSaveEdit, { once: false });
+    } else {
+      el.removeEventListener('blur', autoSaveEdit);
+    }
   });
+}
+
+function autoSaveEdit() {
+  const edits = loadEdits();
+  document.querySelectorAll('[data-editable]').forEach(el => {
+    edits[el.dataset.editable] = el.innerHTML;
+  });
+  localStorage.setItem(EDITS_KEY, JSON.stringify(edits));
 }
 
 function saveAllEdits() {
