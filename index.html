@@ -48,6 +48,22 @@
   .stat-num { font-size: 36px; font-weight: 900; color: #c84b7a; line-height: 1; }
   .stat-label { font-size: 13px; color: #888; margin-top: 4px; }
 
+  /* ── PACKING ── */
+  .pack-progress-wrap { background:#fce4ec;border-radius:20px;height:10px;margin-bottom:8px;overflow:hidden; }
+  .pack-progress-bar { height:100%;background:linear-gradient(90deg,#c84b7a,#f06292);border-radius:20px;transition:width .4s; }
+  .pack-status { text-align:center;font-size:13px;color:#aaa;font-weight:600;margin-bottom:20px; }
+  .pack-status.done { color:#2a7a6a;font-weight:800; }
+  .pack-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px; }
+  .pack-item { background:white;border-radius:16px;padding:16px 18px;box-shadow:0 3px 12px rgba(200,75,122,0.08);cursor:pointer;display:flex;align-items:center;gap:14px;border:2px solid transparent;transition:all .2s;user-select:none; }
+  .pack-item:hover { border-color:#f9a8c9;transform:translateY(-2px); }
+  .pack-item.checked { background:#f0faf7;border-color:#4db6a3; }
+  .pack-item.checked .pack-text { text-decoration:line-through;color:#aaa; }
+  .pack-check { width:26px;height:26px;border-radius:50%;border:2px solid #f9a8c9;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;transition:all .2s; }
+  .pack-item.checked .pack-check { background:#4db6a3;border-color:#4db6a3;color:white; }
+  .pack-emoji { font-size:22px;flex-shrink:0; }
+  .pack-text { font-size:15px;font-weight:600;color:#2d2d2d;flex:1; }
+  .pack-reset-btn { display:block;margin:20px auto 0;background:none;border:2px solid #f9a8c9;color:#c84b7a;border-radius:20px;padding:8px 24px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s; }
+  .pack-reset-btn:hover { background:#fce4ec; }
   /* ── ROOMS ── */
   .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
   .room-card { background: white; border-radius: 18px; padding: 18px 20px; box-shadow: 0 3px 16px rgba(200,75,122,0.1); border-top: 4px solid #f9a8c9; position: relative; transition: transform .15s, box-shadow .15s; }
@@ -330,6 +346,7 @@
 <!-- TABS -->
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('schedule',this)">📅 לו"ז</button>
+  <button class="tab-btn" onclick="showTab('packing',this)">🎒 ציוד</button>
   <button class="tab-btn" onclick="showTab('rooms',this)">🏨 חלוקת חדרים</button>
   <button class="tab-btn" onclick="showTab('transport',this)">🚌 הסעות</button>
   <button class="tab-btn" onclick="showTab('photos',this)">📸 תמונות</button>
@@ -367,6 +384,17 @@
       <div class="event-item"><div class="event-icon">🏫</div><div class="event-time green"><span data-editable="et9" contenteditable="false">16:00</span></div><div class="event-desc"><span data-editable="ev9" contenteditable="false">חזרה לאורנית</span></div></div>
     </div>
   </div>
+</div>
+
+<!-- PACKING -->
+<div class="section" id="packing">
+  <div class="section-title">מה לארוז? 🎒</div>
+  <div class="pack-progress-wrap">
+    <div class="pack-progress-bar" id="packBar"></div>
+  </div>
+  <div class="pack-status" id="packStatus">0 מתוך 12 פריטים</div>
+  <div class="pack-grid" id="packGrid"></div>
+  <button class="pack-reset-btn" onclick="resetPacking()">↺ אפס הכל</button>
 </div>
 
 <!-- ROOMS -->
@@ -1353,9 +1381,72 @@ function openWaze(key) {
   }
 }
 
+// ── PACKING LIST ──
+const PACK_ITEMS = [
+  { emoji: '👡', text: 'כפכפים לבריכה / ים' },
+  { emoji: '👕', text: 'בגדים נוחים ליום השני' },
+  { emoji: '🌙', text: 'פיג\'מה' },
+  { emoji: '🪥', text: 'מברשת ומשחת שיניים' },
+  { emoji: '☀️', text: 'קרם הגנה' },
+  { emoji: '🕶️', text: 'משקפי שמש' },
+  { emoji: '🧢', text: 'כובע' },
+  { emoji: '🧴', text: 'דאודורנט, מוצרי רחצה והיגיינה' },
+  { emoji: '💊', text: 'תרופות' },
+  { emoji: '🌊', text: 'בגדים ארוכים לערב על הים' },
+  { emoji: '👜', text: 'תיק צד קטן ונוח' },
+  { emoji: '💧', text: 'בקבוק מים רב-פעמי' }
+];
+const PACK_KEY = 'galiPackingList';
+
+function loadPackState() {
+  try { return JSON.parse(localStorage.getItem(PACK_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function renderPacking() {
+  const checked = loadPackState();
+  const grid = document.getElementById('packGrid');
+  const bar = document.getElementById('packBar');
+  const status = document.getElementById('packStatus');
+  if (!grid) return;
+  const count = checked.length;
+  const total = PACK_ITEMS.length;
+  const pct = Math.round(count / total * 100);
+  bar.style.width = pct + '%';
+  if (count === total) {
+    status.textContent = '✅ הכל ארוז! יאללה לים! 🌊';
+    status.classList.add('done');
+  } else {
+    status.textContent = count + ' מתוך ' + total + ' פריטים ✓';
+    status.classList.remove('done');
+  }
+  grid.innerHTML = PACK_ITEMS.map((item, i) => {
+    const isChecked = checked.includes(i);
+    return `<div class="pack-item ${isChecked ? 'checked' : ''}" onclick="togglePackItem(${i})">
+      <div class="pack-check">${isChecked ? '✓' : ''}</div>
+      <span class="pack-emoji">${item.emoji}</span>
+      <span class="pack-text">${item.text}</span>
+    </div>`;
+  }).join('');
+}
+
+function togglePackItem(i) {
+  const checked = loadPackState();
+  const idx = checked.indexOf(i);
+  if (idx === -1) checked.push(i);
+  else checked.splice(idx, 1);
+  localStorage.setItem(PACK_KEY, JSON.stringify(checked));
+  renderPacking();
+}
+
+function resetPacking() {
+  localStorage.removeItem(PACK_KEY);
+  renderPacking();
+}
+
 // ── INIT ──
 renderRooms();
 renderTransport();
+renderPacking();
 syncFromSheet();
 listenPhotos();
 initChat();
